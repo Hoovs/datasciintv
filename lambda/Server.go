@@ -16,6 +16,20 @@ type Result struct {
 	Error  string `json:"error"`
 }
 
+func RunCode(code string) Result {
+	cmd := exec.Command("/usr/bin/python3", "-c", code)
+
+	stdOut, stdErr := new(bytes.Buffer), new(bytes.Buffer)
+	cmd.Stdout = stdOut
+	cmd.Stderr = stdErr
+	cmd.Run()
+
+	return Result{
+		Result: stdOut.String(),
+		Error:  stdErr.String(),
+	}
+}
+
 func LambdaEndpointHandler() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
@@ -27,18 +41,7 @@ func LambdaEndpointHandler() func(w http.ResponseWriter, r *http.Request) {
 		code := string(body)
 		fmt.Printf("code: %s\n", code)
 
-		cmd := exec.Command("/usr/bin/python3", "-c", code)
-
-		stdOut, stdErr := new(bytes.Buffer), new(bytes.Buffer)
-		cmd.Stdout = stdOut
-		cmd.Stderr = stdErr
-		cmd.Run()
-
-		result := Result{
-			Result: stdOut.String(),
-			Error:  stdErr.String(),
-		}
-
+		result := RunCode(code)
 		response, err := json.Marshal(result)
 		if err != nil {
 			fmt.Println("Something went wrong with marshaling")

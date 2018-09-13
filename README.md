@@ -4,4 +4,5 @@ This is a service that allows you to run python code that is passed in via HTTP 
 
 TODO:
 * Server should be wrapped in a Mux
-* Logging
+* Logging should be done via framework
+* need to catch errors better
