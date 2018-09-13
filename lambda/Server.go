@@ -1,32 +1,23 @@
 // The main entry point for services of the lambda
-package main
+package lambda
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"os/exec"
 )
 
-// CodeResult is the json response of the code execution
-type CodeResult struct {
-	Result string
-	Error  string
+// Result is the json response of the code execution with any error
+type Result struct {
+	Result string `json:"codeValue"`
+	Error  string `json:"error"`
 }
 
-const (
-	defaultPort = ":8080"
-)
-
-func main() {
-	port := defaultPort
-	if args := os.Args; len(args) > 1 {
-		port = args[0]
-	}
-
-	http.HandleFunc("/lambda", func(w http.ResponseWriter, r *http.Request) {
+func LambdaEndpointHandler() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			fmt.Printf("Error reading body: %s\n", err.Error())
@@ -42,10 +33,19 @@ func main() {
 		cmd.Stdout = stdOut
 		cmd.Stderr = stdErr
 		cmd.Run()
-		w.Write(stdOut.Bytes())
+
+		result := Result{
+			Result: stdOut.String(),
+			Error:  stdErr.String(),
+		}
+
+		response, err := json.Marshal(result)
+		if err != nil {
+			fmt.Println("Something went wrong with marshaling")
+			return
+		}
+
+		w.Write(response)
 		return
-	})
-
-	http.ListenAndServe(port, nil)
-
+	}
 }
